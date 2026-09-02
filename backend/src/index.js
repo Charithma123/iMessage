@@ -6,6 +6,7 @@ import "dotenv/config.js";
 import fs from  'fs';
 import {clerkMiddleware} from "@clerk/express";
 import cors from 'cors'; 
+import path from 'path';
 
 const app = express();
 
