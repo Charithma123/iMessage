@@ -1,4 +1,7 @@
 .env
+.env*
+*.env
+backend/.env
 
 # Logs
 logs
