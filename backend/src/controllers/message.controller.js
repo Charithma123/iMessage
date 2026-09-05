@@ -1,7 +1,8 @@
+import mongoose from "mongoose";
 import User  from "../models/user.model.js"
 import Message from "../models/message.model.js"
 import { hasImageKitConfig, uploadChatMedia } from "../lib/imagekit.js";
-import { getReceiverSocketId } from "../lib/socket.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export async function getUsersForSidebar(req,res){
 
@@ -22,18 +23,17 @@ export async function getUsersForSidebar(req,res){
 export async function getConversationForSidebar(req,res){
 
     try {
-        const loggedInUserId = req.user._id;
+        const loggedInUserId = new mongoose.Types.ObjectId(String(req.user._id));
 
         const conversations = await Message.aggregate([
             // keep only the message I sent or recievd
             {$match: {$or: [{senderId: loggedInUserId}, {receiverId: loggedInUserId}] } },
 
-            // collapse them into one row per chat partner, nothing our latest message time.
-
+            // collapse them into one row per chat partner, noting our latest message time.
             {
                 $group:{
                     // the partner is the other person on the message(not me).
-                    _id: {$cond: [{$req: ["$senderId", loggedInUserId]}, "$receiverId","$senderId"]},
+                    _id: {$cond: [{$eq: ["$senderId", loggedInUserId]}, "$receiverId", "$senderId"]},
                     lastMessageAt: {$max: "$createdAt"},
                 },
             },
@@ -43,10 +43,13 @@ export async function getConversationForSidebar(req,res){
             // look up each partner's user profile (comes back as an array).
             {$lookup: {from: "users", localField:"_id", foreignField:"_id", as:"user"}},
 
-            // pull that profile out of the array and make it the document.
-            {$replaceRoot: {newRoot: {$first: "$user"}}},
+            // unwind partner's profile
+            {$unwind: "$user"},
 
-            // hide the private clerkId field form the result
+            // make that user profile the root document
+            {$replaceRoot: {newRoot: "$user"}},
+
+            // hide the private clerkId field from the result
             {$project:{clerkId:0}},
 
         ]);
@@ -82,7 +85,7 @@ export async function getMessages(req,res) {
     
 }
 
-export async function sendMessage(params) {
+export async function sendMessage(req, res) {
     try {
         const {text} = req.body;
         const {id:receiverId} = req.params;
@@ -91,27 +94,45 @@ export async function sendMessage(params) {
   
         let imageUrl;
         let videoUrl;
-    
+        let audioUrl;
+        let documentUrl;
+        let documentName;
+        let documentSize;
 
-        if(req.file){
-            if(!hasImageKitConfig()){
-                return res.status(500).json({message: "Media upload is not configured"});
+        if (req.file) {
+            if (!hasImageKitConfig()) {
+                return res.status(500).json({ message: "Media upload is not configured" });
             }
 
-           const url = await uploadChatMedia(req.file);
-           if(req.file.mimetype.startsWith("video/")) videoUrl = url;
-           else imageUrl = url;
+            const url = await uploadChatMedia(req.file);
+            const mime = req.file.mimetype || "";
+
+            if (mime.startsWith("video/")) {
+                videoUrl = url;
+            } else if (mime.startsWith("audio/")) {
+                audioUrl = url;
+            } else if (mime.startsWith("image/")) {
+                imageUrl = url;
+            } else {
+                documentUrl = url;
+                documentName = req.file.originalname;
+                documentSize = req.file.size;
+            }
         }
 
         const newMessage = new Message({
             senderId,
             receiverId,
             text,
-            image:imageUrl,
-            video:videoUrl,
-        })
+            image: imageUrl,
+            video: videoUrl,
+            audio: audioUrl,
+            documentUrl,
+            documentName,
+            documentSize,
+        });
 
-        await newMessage.save()
+        await newMessage.save();
 
         const receiverSocketId = getReceiverSocketId(receiverId);
 

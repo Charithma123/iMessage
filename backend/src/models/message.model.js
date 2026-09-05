@@ -26,6 +26,22 @@ const messageSchema = new mongoose.Schema(
         type: String,
     },
 
+    audio: {
+        type: String, // voice recording url
+    },
+
+    documentUrl: {
+        type: String,
+    },
+
+    documentName: {
+        type: String,
+    },
+
+    documentSize: {
+        type: Number,
+    },
+
 }, { timestamps: true });
 
 

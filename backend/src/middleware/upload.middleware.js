@@ -10,13 +10,17 @@ export const upload = multer({
     fileFilter:(req,file,cb)=>{
         const isImage = file.mimetype.startsWith("image/");
         const isVideo = file.mimetype.startsWith("video/");
-      
+        const isAudio = file.mimetype.startsWith("audio/");
+        const isDocument =
+            file.mimetype.startsWith("application/") ||
+            file.mimetype.startsWith("text/") ||
+            /\.(pdf|doc|docx|txt|xls|xlsx|ppt|pptx|csv|zip|rar)$/i.test(file.originalname);
 
-        if(!isImage && !isVideo ){
-            cb(new Error("Only image, video  uploads are allowed"));
+        if (!isImage && !isVideo && !isAudio && !isDocument) {
+            cb(new Error("Only image, video, audio, and document uploads are allowed"));
             return;
         }
 
-        cb(null,true);
+        cb(null, true);
     },
 });

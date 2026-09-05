@@ -8,5 +8,5 @@
     "checkJs": false,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"]
+  "include": ["src", "../backend/src/seeds"]
 }
