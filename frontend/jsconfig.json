@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -8,5 +8,5 @@
     "checkJs": false,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "../backend/src/seeds"]
+  "include": ["src"]
 }
