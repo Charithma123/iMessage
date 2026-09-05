@@ -9,6 +9,7 @@ import cors from 'cors';
 import path from 'path';
 
 import clerkWebhook from './webhooks/clerk.webhook.js';
+import authRoutes from './routes/auth.route.js';
 import job from './lib/cron.js';
 
 const app = express();
@@ -28,6 +29,8 @@ app.use(clerkMiddleware());
 app.get("/health", (req, res) => {
     res.status(200).json({ ok: true });
 });
+
+app.use("/api/auth", authRoutes);
 
 if (fs.existsSync(publicDir)) {
 
